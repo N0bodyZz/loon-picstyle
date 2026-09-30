@@ -1,18 +1,30 @@
-// Picstyle Loon sign-in. Credentials remain in local script storage.
+// Version 2026-09-30.2. Picstyle Loon sign-in. Credentials remain in local script storage.
 const BASE = 'https://picstyle.duomiao.pro';
 const KEY = 'picstyle.token.v1';
 function notify(message) {
   console.log(message);
   $notification.post('风格转换器签到', '', message);
 }
+let phase = '读取登录信息';
+function failure(code, message) {
+  const error = new Error(message);
+  error.safeCode = code;
+  return error;
+}
 function call(method, path, token) {
   return new Promise((resolve, reject) => {
     const options = {url: BASE + path, headers: {token, 'Content-Type': 'application/json'}, timeout: 15};
     if (method === 'post') options.body = '{}';
     $httpClient[method](options, (error, response, body) => {
-      if (error) return reject(new Error('网络请求失败'));
-      if (!response || response.status < 200 || response.status >= 300) return reject(new Error('HTTP 请求未成功'));
-      try { resolve(JSON.parse(body)); } catch (_) { reject(new Error('响应不是有效 JSON')); }
+      if (error) return reject(failure('NETWORK', '网络层请求失败'));
+      const status = Number(response && response.status);
+      console.log('阶段：' + phase + '；HTTP：' + (Number.isFinite(status) ? status : '未知') + '；响应类型：' + typeof body + '；长度：' + (typeof body === 'string' ? body.length : '未知'));
+      if (!Number.isFinite(status) || status < 200 || status >= 300) return reject(failure('HTTP', 'HTTP 状态异常：' + (Number.isFinite(status) ? status : '未知')));
+      try {
+        const value = typeof body === 'string' ? JSON.parse(body) : body;
+        if (!value || typeof value !== 'object' || Array.isArray(value)) return reject(failure('JSON', '响应不是 JSON 对象'));
+        resolve(value);
+      } catch (_) { reject(failure('JSON', '响应不是有效 JSON')); }
     });
   });
 }
@@ -35,6 +47,8 @@ async function main() {
   }
   const token = $persistentStore.read(KEY);
   if (!token) return notify('尚未获取登录信息，请打开小程序首页。');
+  console.log('脚本版本：2026-09-30.2');
+  phase = '查询今日签到状态';
   const before = await call('get', '/styles?tag_id=&offset=0', token);
   if (before.status === 'not_login') return notify('登录已过期，请重新打开小程序更新登录信息。');
   const sign = before.data && before.data.sign;
@@ -42,13 +56,15 @@ async function main() {
     return notify('无法确认签到状态，未提交签到。');
   }
   if (sign.today_signed) return notify('今日已签到，无需重复提交。');
+  phase = '提交签到';
   const result = await call('post', '/sign-in', token);
   if (result.status === 'not_login') return notify('登录已过期，请重新打开小程序。');
   if (result.status !== 'success') return notify('签到接口未返回成功，未自动重试。');
+  phase = '复核签到结果';
   const after = await call('get', '/styles?tag_id=&offset=0', token);
   const confirmed = after.data && after.data.sign;
   if (after.status === 'success' && confirmed && confirmed.today_signed === true) {
     notify('签到成功' + (typeof confirmed.running_days === 'number' ? '，连续 ' + confirmed.running_days + ' 天' : '') + (typeof confirmed.today_points === 'number' ? '，今日 ' + confirmed.today_points + ' 金币。' : '。'));
   } else notify('接口返回成功，但未能复核签到状态，请在小程序确认。');
 }
-main().catch(() => notify('请求或解析失败，未自动重试，请检查网络或接口。')).finally(() => $done({}));
+main().catch(error => notify(phase + '失败：' + (error && error.safeCode ? error.message : '脚本运行异常') + '。未自动重试。')).finally(() => $done({}));
