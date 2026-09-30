@@ -1,8 +1,8 @@
 #!name=风格转换器每日签到
-#!desc=脚本版本2026-09-30.3；每日10:00检查并签到；凭据仅存本机，日志不含Token。要求Loon 3.5.1(983)以上，按设备时区执行。实际签到待验证。
+#!desc=脚本版本2026-09-30.3；每日07:00检查并签到；凭据仅存本机，日志不含Token。要求Loon 3.5.1(983)以上，按设备时区执行。实际签到待验证。
 #!author=Local
 [Script]
 request if ${url} ~= /^https:\/\/picstyle\.duomiao\.pro\/styles(?:\?|$)/ then script("https://raw.githubusercontent.com/N0bodyZz/loon-picstyle/36cd385cbfd79d7456a4ca01fe17ef6560c60dc1/picstyle.js") with tag="获取风格转换器登录信息", timeout=10
-cron "0 10 * * *" then script("https://raw.githubusercontent.com/N0bodyZz/loon-picstyle/36cd385cbfd79d7456a4ca01fe17ef6560c60dc1/picstyle.js") with tag="风格转换器每日签到", timeout=60
+cron "0 7 * * *" then script("https://raw.githubusercontent.com/N0bodyZz/loon-picstyle/36cd385cbfd79d7456a4ca01fe17ef6560c60dc1/picstyle.js") with tag="风格转换器每日签到", timeout=60
 [MitM]
 hostname = picstyle.duomiao.pro
