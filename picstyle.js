@@ -1,4 +1,4 @@
-// Version 2026-09-30.2. Picstyle Loon sign-in. Credentials remain in local script storage.
+// Version 2026-09-30.3. Picstyle Loon sign-in. Credentials remain in local script storage.
 const BASE = 'https://picstyle.duomiao.pro';
 const KEY = 'picstyle.token.v1';
 function notify(message) {
@@ -13,7 +13,7 @@ function failure(code, message) {
 }
 function call(method, path, token) {
   return new Promise((resolve, reject) => {
-    const options = {url: BASE + path, headers: {token, 'Content-Type': 'application/json'}, timeout: 15};
+    const options = {url: BASE + path, headers: {token, 'Content-Type': 'application/json'}, timeout: 15000};
     if (method === 'post') options.body = '{}';
     $httpClient[method](options, (error, response, body) => {
       if (error) return reject(failure('NETWORK', '网络层请求失败'));
@@ -47,7 +47,7 @@ async function main() {
   }
   const token = $persistentStore.read(KEY);
   if (!token) return notify('尚未获取登录信息，请打开小程序首页。');
-  console.log('脚本版本：2026-09-30.2');
+  console.log('脚本版本：2026-09-30.3');
   phase = '查询今日签到状态';
   const before = await call('get', '/styles?tag_id=&offset=0', token);
   if (before.status === 'not_login') return notify('登录已过期，请重新打开小程序更新登录信息。');
